@@ -35,6 +35,7 @@ namespace CRUDAutomation
             methodSignatures.CreateRequestMethodSignature = $"Task<{content.ModelName}> {createOrRequest + content.ModelName}({createOrRequest + content.ModelName}DTO {camelCaseModelName}DTO)";
             methodSignatures.UpdateMethodSignature = $"Task<{content.ModelName}> Update{content.ModelName}(Update{content.ModelName}DTO {camelCaseModelName}DTO)";
             methodSignatures.DeleteMethodSignature = $"Task<{content.ModelName}> Delete{content.ModelName}({idType} id)";
+            methodSignatures.StatusChangeMethodsSignature = $"Task<string>";
             methodSignatures.CheckMethodSignature = $"Task<{content.ModelName}> Check{pluralModel}(List<{idType}> ids)";
             methodSignatures.ApproveMethodSignature = $"Task<{content.ModelName}> Approve{pluralModel}(List<{idType}> ids)";
             methodSignatures.DeclineMethodSignature = $"Task<{content.ModelName}> Decline{pluralModel}(List<{idType}> ids)";
@@ -81,15 +82,16 @@ namespace CRUDAutomation
             });
             #endregion
 
-            ServiceCreator(headerComponents, content, methodSignatures, createOrRequest, pluralModel, camelCaseModelName);
+            ServiceCreator(headerComponents, content, methodSignatures, createOrRequest, pluralModel, camelCaseModelName, idType);
         }
-        public void ServiceCreator(
+        private void ServiceCreator(
             HeaderComponents headerComponents, 
             Content content, 
             MethodSignatures methodSignatures, 
             string createOrRequest,
             string pluralModel,
-            string camelCaseModelName)
+            string camelCaseModelName,
+            string idType)
         {
             string classContent = "";
 
@@ -123,11 +125,11 @@ namespace CRUDAutomation
             if (content.WithStatus)
             {
                 // CHECK
-                StatusChangeMethodsCreator(ref classContent, methodSignatures, content.ModelName, camelCaseModelName, pluralModel, "CHECK");
+                StatusChangeMethodsCreator(ref classContent, methodSignatures, idType, content.ModelName, camelCaseModelName, pluralModel, "Check");
                 // APPROVE
-                StatusChangeMethodsCreator(ref classContent, methodSignatures, content.ModelName, camelCaseModelName, pluralModel, "APPROVE");
+                StatusChangeMethodsCreator(ref classContent, methodSignatures, idType, content.ModelName, camelCaseModelName, pluralModel, "Approve");
                 // DECLINE
-                StatusChangeMethodsCreator(ref classContent, methodSignatures, content.ModelName, camelCaseModelName, pluralModel, "DECLINE");
+                StatusChangeMethodsCreator(ref classContent, methodSignatures, idType, content.ModelName, camelCaseModelName, pluralModel, "Decline");
             }
             #endregion
 
@@ -255,6 +257,7 @@ namespace CRUDAutomation
         private void StatusChangeMethodsCreator(
             ref string classContent, 
             MethodSignatures methodSignatures,
+            string idType,
             string modelName,
             string camelCaseModelName,
             string pluralModel,
@@ -264,17 +267,17 @@ namespace CRUDAutomation
             string status1 = "";
             if (status.EndsWith("E") || status.EndsWith("e"))
             {
-                status1 = $"{status}D";
+                status1 = $"{status.ToUpper()}D";
             }
             else
             {
-                status1 = $"{status}ED";
+                status1 = $"{status.ToUpper()}ED";
             }
             #endregion
 
             classContent +=
                 $"\t\t// {status.ToUpper()}\n" +
-                $"\t\tpublic async {methodSignatures.CheckMethodSignature}\n" +
+                $"\t\tpublic async {methodSignatures.StatusChangeMethodsSignature} {status + pluralModel}(List<{idType}> ids)\n" +
                 $"\t\t{{\n" +
                 $"\t\t\tforeach(var id in ids)\n" +
                 $"\t\t\t{{\n" +
@@ -289,7 +292,7 @@ namespace CRUDAutomation
                 $"\t\t\t_context.{pluralModel}.Update({camelCaseModelName});\n" +
                 $"\t\t\tawait _context.SaveChangesAsync();\n" +
                 $"\n" +
-                $"\t\t\treturn {camelCaseModelName};\n" +
+                $"\t\t\treturn \"{status1}\";\n" +
                 $"\t\t}}\n\n";
         }
         
@@ -305,6 +308,7 @@ namespace CRUDAutomation
                 return (single + "s");
             }
         }
+
         // WRITE CONTENTS TO FILE
         private void FileWriter(FileDetail fileDetail)
         {
@@ -315,6 +319,7 @@ namespace CRUDAutomation
             }
         }
 
+        // RETURNS A SPACED OUT VERSION A PASCAL CASE STRING
         private string SpaceOut(string PascalCase)
         {
             if (PascalCase.Length > 1)

@@ -13,6 +13,7 @@ namespace CRUDAutomation
         public string CreateRequestMethodSignature { get; set; }
         public string UpdateMethodSignature { get; set; }
         public string DeleteMethodSignature { get; set; }
+        public string StatusChangeMethodsSignature { get; set; }
         public string CheckMethodSignature { get; set; }
         public string ApproveMethodSignature { get; set; }
         public string DeclineMethodSignature { get; set; }
