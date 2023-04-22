@@ -43,7 +43,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Content.cs" />
     <Compile Include="CRUDAutomationService.cs" />
+    <Compile Include="FileDetail.cs" />
+    <Compile Include="HeaderComponents.cs" />
+    <Compile Include="MethodSignatures.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
