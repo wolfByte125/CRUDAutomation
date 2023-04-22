@@ -117,17 +117,17 @@ namespace CRUDAutomation
             // CREATE / REQUEST
             CreateRequestMethodCreator(ref classContent, methodSignatures, createOrRequest, pluralModel, content.ModelName, camelCaseModelName);
             // UPDATE
-            UpdateMethodsCreator(ref classContent, methodSignatures, content.ModelName, camelCaseModelName);
+            UpdateMethodsCreator(ref classContent, methodSignatures, content.ModelName, camelCaseModelName, pluralModel);
             // DELETE
-            DeleteMethodsCreator(ref classContent, methodSignatures, content.ModelName, camelCaseModelName);
+            DeleteMethodsCreator(ref classContent, methodSignatures, content.ModelName, camelCaseModelName, pluralModel);
             if (content.WithStatus)
             {
                 // CHECK
-                CheckMethodsCreator(ref classContent, methodSignatures, content.ModelName, camelCaseModelName);
+                StatusChangeMethodsCreator(ref classContent, methodSignatures, content.ModelName, camelCaseModelName, pluralModel, "CHECK");
                 // APPROVE
-                ApproveMethodsCreator(ref classContent, methodSignatures, content.ModelName, camelCaseModelName);
+                StatusChangeMethodsCreator(ref classContent, methodSignatures, content.ModelName, camelCaseModelName, pluralModel, "APPROVE");
                 // DECLINE
-                DeclineMethodsCreator(ref classContent, methodSignatures, content.ModelName, camelCaseModelName);
+                StatusChangeMethodsCreator(ref classContent, methodSignatures, content.ModelName, camelCaseModelName, pluralModel, "DECLINE");
             }
             #endregion
 
@@ -205,9 +205,25 @@ namespace CRUDAutomation
             ref string classContent, 
             MethodSignatures methodSignatures,
             string modelName,
-            string camelCaseModelName)
+            string camelCaseModelName,
+            string pluralModel)
         {
-
+            classContent +=
+                $"\t\t// UPDATE\n" +
+                $"\t\tpublic async {methodSignatures.UpdateMethodSignature}\n" +
+                $"\t\t{{\n" +
+                $"\t\t\tvar {camelCaseModelName} = await _context.{pluralModel}\n" +
+                $"\t\t\t\t.Where(x => x.Id == {camelCaseModelName}DTO.Id)\n" +
+                $"\t\t\t\t.FirstOrDefaultAsync();\n" +
+                $"\n" +
+                $"\t\t\tif({camelCaseModelName} == null) throw new KeyNotFoundException(\"" + $"{SpaceOut(modelName)} Not Found.\"" + $");\n" +
+                $"\t\t\t{camelCaseModelName} = _mapper.Map({camelCaseModelName}DTO, {camelCaseModelName});\n" +
+                $"\n" +
+                $"\t\t\t_context.{pluralModel}.Update({camelCaseModelName});\n" +
+                $"\t\t\tawait _context.SaveChangesAsync();\n" +
+                $"\n" +
+                $"\t\t\treturn {camelCaseModelName};\n" +
+                $"\t\t}}\n\n";
         }
 
         // DELETE CREATOR
@@ -215,42 +231,68 @@ namespace CRUDAutomation
             ref string classContent, 
             MethodSignatures methodSignatures,
             string modelName,
-            string camelCaseModelName)
+            string camelCaseModelName,
+            string pluralModel)
         {
+            classContent +=
+                $"\t\t// DELETE\n" +
+                $"\t\tpublic async {methodSignatures.DeleteMethodSignature}\n" +
+                $"\t\t{{\n" +
+                $"\t\t\tvar {camelCaseModelName} = await _context.{pluralModel}\n" +
+                $"\t\t\t\t.Where(x => x.Id == id)\n" +
+                $"\t\t\t\t.FirstOrDefaultAsync();\n" +
+                $"\n" +
+                $"\t\t\tif({camelCaseModelName} == null) throw new KeyNotFoundException(\"" + $"{SpaceOut(modelName)} Not Found.\"" + $");\n" +
+                $"\n" +
+                $"\t\t\t_context.{pluralModel}.Remove({camelCaseModelName});\n" +
+                $"\t\t\tawait _context.SaveChangesAsync();\n" +
+                $"\n" +
+                $"\t\t\treturn {camelCaseModelName};\n" +
+                $"\t\t}}\n\n";
+        }
 
+        // STATUS CHANGE CREATOR
+        private void StatusChangeMethodsCreator(
+            ref string classContent, 
+            MethodSignatures methodSignatures,
+            string modelName,
+            string camelCaseModelName,
+            string pluralModel,
+            string status)
+        {
+            #region STATUS NAMING
+            string status1 = "";
+            if (status.EndsWith("E") || status.EndsWith("e"))
+            {
+                status1 = $"{status}D";
+            }
+            else
+            {
+                status1 = $"{status}ED";
+            }
+            #endregion
+
+            classContent +=
+                $"\t\t// {status.ToUpper()}\n" +
+                $"\t\tpublic async {methodSignatures.CheckMethodSignature}\n" +
+                $"\t\t{{\n" +
+                $"\t\t\tforeach(var id in ids)\n" +
+                $"\t\t\t{{\n" +
+                $"\t\t\t\tvar {camelCaseModelName} = await _context.{pluralModel}\n" +
+                $"\t\t\t\t\t.Where(x => x.Id == id)\n" +
+                $"\t\t\t\t\t.FirstOrDefaultAsync();\n" +
+                $"\n" +
+                $"\t\t\t\tif({camelCaseModelName} == null) throw new KeyNotFoundException(\"" + $"{SpaceOut(modelName)} Not Found.\"" + $");\n\n" +
+                $"\t\t\t\t{camelCaseModelName}.Status = \"{status1}\";\n" +
+                $"\t\t\t}}" +
+                $"\n\n" +
+                $"\t\t\t_context.{pluralModel}.Update({camelCaseModelName});\n" +
+                $"\t\t\tawait _context.SaveChangesAsync();\n" +
+                $"\n" +
+                $"\t\t\treturn {camelCaseModelName};\n" +
+                $"\t\t}}\n\n";
+        }
         
-        }
-
-        // CHECK CREATOR
-        private void CheckMethodsCreator(
-            ref string classContent, 
-            MethodSignatures methodSignatures,
-            string modelName,
-            string camelCaseModelName)
-        {
-
-        }
-        
-        // APPROVE CREATOR
-        private void ApproveMethodsCreator(
-            ref string classContent, 
-            MethodSignatures methodSignatures,
-            string modelName,
-            string camelCaseModelName)
-        {
-
-        }
-
-        // DECLINE CREATOR
-        private void DeclineMethodsCreator(
-            ref string classContent, 
-            MethodSignatures methodSignatures,
-            string modelName,
-            string camelCaseModelName)
-        {
-
-        }
-
         // GET THE PLURAL FORM OF A MODEL
         private string Pluralize(string single)
         {
@@ -275,11 +317,15 @@ namespace CRUDAutomation
 
         private string SpaceOut(string PascalCase)
         {
-            var words = Regex.Matches(PascalCase, @"([A-Z][a-z]+)")
-                .Cast<Match>()
-                .Select(m => m.Value);
+            if (PascalCase.Length > 1)
+            {
+                var words = Regex.Matches(PascalCase, @"([A-Z][a-z]+)")
+                    .Cast<Match>()
+                    .Select(m => m.Value);
 
-            return string.Join(" ", words);
+                return string.Join(" ", words);
+            }
+            return PascalCase;
         }
     }
 }

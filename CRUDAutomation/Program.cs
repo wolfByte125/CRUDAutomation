@@ -22,7 +22,7 @@ namespace CRUDAutomation
             CRUDAutomationService crudAutomation = new CRUDAutomationService();
             crudAutomation.IServiceCreator(new Content
             {
-                ModelName = "CheckAgain",
+                ModelName = "Z",
                 WithStatus = true
             });
         }
